@@ -3,13 +3,30 @@ import { useAppContext } from "../../context/AppContext";
 import toast from "react-hot-toast";
 
 const SellerLogin = () => {
-  const { isSeller, setIsSeller, navigate } = useAppContext();
+  const { isSeller, setIsSeller, navigate, axios } = useAppContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const onSubmitHandler = async (event) => {
-    event.preventDefault();
-    setIsSeller(true);
+    try {
+      event.preventDefault();
+      const { data } = await axios.post("/api/seller/login", {
+        email,
+        password,
+      });
+
+      console.log(data);
+
+      if (data?.success) {
+        setIsSeller(true);
+        navigate("/seller");
+      }else {
+        toast.error(data?.message || "Login failed. Please try again.");
+      }
+
+    } catch (error) {
+      toast.error(error.message || "An error occurred during login. Please try again.");
+    }
   };
 
   useEffect(() => {
