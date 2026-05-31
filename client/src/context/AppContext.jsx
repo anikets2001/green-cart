@@ -22,21 +22,47 @@ export const AppContextProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState({});
   const [searchQuery, setSearchQuery] = useState({});
 
-  const fetchSellerStatus = async()=> {
+  const fetchSellerStatus = async () => {
     try {
-      const {data} = await axios.get("/api/seller/is-auth")
-      if(data?.success){
+      const { data } = await axios.get("/api/seller/is-auth");
+      if (data?.success) {
         setIsSeller(true);
       } else {
         setIsSeller(false);
       }
-    }catch(err){
+    } catch (err) {
+      console.error("Error fetching seller status:", err);
       setIsSeller(false);
     }
-  }
+  };
+
+  const fetchUserStatus = async () => {
+    try {
+      const { data } = await axios.get("/api/user/is-auth");
+      if (data?.success) {
+        setUser(data.user);
+        setCartItems(data.user?.cartItems || {});
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      console.error("Error fetching user status:", err);
+      setUser(null);
+    }
+  };
 
   const fetchProducts = async () => {
-    setProducts(dummyProducts);
+    try {
+      const { data } = await axios.get("/api/product/list");
+
+      if (data?.success) {
+        setProducts(data.products);
+      } else {
+        toast.error(data.message || "Failed to fetch products");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to fetch products");
+    }
   };
 
   // Add Product to Cart
@@ -61,44 +87,62 @@ export const AppContextProvider = ({ children }) => {
   };
 
   // Remove Product from Cart
-  const removeFromCart = (itemId)=>{
-      let cartData = structuredClone(cartItems);
-      if(cartData[itemId]){
-          cartData[itemId] -= 1;
-          if(cartData[itemId] === 0){
-              delete cartData[itemId];
-          }
+  const removeFromCart = (itemId) => {
+    let cartData = structuredClone(cartItems);
+    if (cartData[itemId]) {
+      cartData[itemId] -= 1;
+      if (cartData[itemId] === 0) {
+        delete cartData[itemId];
       }
-      toast.success("Removed from Cart")
-      setCartItems(cartData)
-  }
+    }
+    toast.success("Removed from Cart");
+    setCartItems(cartData);
+  };
 
   // Get Cart Item Count
-  const getCartCount = ()=>{
+  const getCartCount = () => {
     let totalCount = 0;
-    for(const item in cartItems){
-        totalCount += cartItems[item];
+    for (const item in cartItems) {
+      totalCount += cartItems[item];
     }
     return totalCount;
-  }
+  };
 
- 
-// Get Cart Total Amount
-const getCartAmount = () =>{
+  // Get Cart Total Amount
+  const getCartAmount = () => {
     let totalAmount = 0;
-    for (const items in cartItems){
-        let itemInfo = products.find((product)=> product._id === items);
-        if(cartItems[items] > 0){
-            totalAmount += itemInfo.offerPrice * cartItems[items]
-        }
+    for (const items in cartItems) {
+      let itemInfo = products.find((product) => product._id === items);
+      if (cartItems[items] > 0) {
+        totalAmount += itemInfo.offerPrice * cartItems[items];
+      }
     }
     return Math.floor(totalAmount * 100) / 100;
-}
+  };
 
   useEffect(() => {
-    fetchSellerStatus()
+    fetchSellerStatus();
+    fetchUserStatus();
     fetchProducts();
   }, []);
+
+  // Update Database Cart Items
+  useEffect(() => {
+    const updateCart = async () => {
+      try {
+        const { data } = await axios.post("/api/cart/update", { cartItems }, {withCredentials: true});
+        if (!data.success) {
+          toast.error(data.message);
+        }
+      } catch (error) {
+        toast.error(error.message);
+      }
+    };
+
+    if (user) {
+      updateCart();
+    }
+  }, [cartItems]);
 
   const value = {
     navigate,
@@ -118,7 +162,9 @@ const getCartAmount = () =>{
     setSearchQuery,
     getCartCount,
     getCartAmount,
-    axios
+    axios,
+    fetchProducts,
+    setCartItems,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
