@@ -15,6 +15,8 @@ import { stripeWebhooks } from './controllers/orderController.js';
 // configure environment variables
 dotenv.config(); 
 
+
+
 // initialize express app and set port
 const app = express();
 const PORT = process.env.PORT || 4000;
