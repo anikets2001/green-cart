@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { useAppContext } from "../context/AppContext";
+import { toast } from "react-hot-toast";
 
 const Navbar = () => {
   const {
@@ -12,6 +13,7 @@ const Navbar = () => {
     searchQuery,
     setSearchQuery,
     getCartCount,
+    axios
   } = useAppContext();
   const [open, setOpen] = useState(false);
 
@@ -27,8 +29,19 @@ const Navbar = () => {
   };
 
   const handleUserLogout = async () => {
-    setUser(null);
-    navigate("/");
+    try{
+      const {data} = await axios.get("/api/user/logout");
+      if(data?.success){
+        toast.success(data.message || "Logged out successfully.");
+        setUser(null);
+        navigate("/");
+      }else {
+        console.log(data.message || "Logout failed. Please try again.");
+      }
+    }catch(err){
+      console.log(err);
+      toast.error("Failed to logout. Please try again.");
+    }
   };
 
   return (
@@ -73,7 +86,7 @@ const Navbar = () => {
         ) : (
           <div className="relative group">
             <img src={assets.profile_icon} alt="profile" className="w-8 h-8" />
-            <ul className="hidden group-hover:block absolute top-10 right-0 w-30 bg-white shadow-md border border-gray-200 py-2.5 rounded-md text-sm z-40">
+            <ul className="hidden group-hover:block absolute top-8 right-0 w-30 bg-white shadow-md border border-gray-200 py-2.5 rounded-md text-sm z-40">
               <li
                 onClick={() => navigate("my-orders")}
                 className="p-1.5 pl-3 hover:bg-primary/10 cursor-pointer"
